@@ -51,7 +51,7 @@
 </head>
 <body>
 
-  <h1>伪词语音 Norming 实验</h1>
+  <h1>音调情绪实验</h1>
 
   <!-- 练习阶段 -->
   <div id="practice-container">
@@ -59,9 +59,7 @@
     <p><strong>示例音频 <span id="practice-num">1</span> / 3</strong></p>
     <audio id="practice-audio" controls></audio>
 
-    <div class="info-box" id="practice-info">
-      <!-- 情绪和声调信息会在这里展示 -->
-    </div>
+    <div class="info-box" id="practice-info"></div>
 
     <button id="next-practice-btn">播放下一个示例</button>
   </div>
@@ -107,16 +105,14 @@
   </div>
 
   <script>
-    const audioFolder = "stimuli"; // 或 "stimuli" 如果你放在 stimuli 文件夹中
+    const audioFolder = "stimuli";
 
-    // ✅ 练习音频与提示信息
     const practiceStimuli = [
       { file: "critical01_buo_tone1_happiness.wav", tone: "一声", emotion: "快乐" },
       { file: "critical01_buo_tone1_sadness.wav", tone: "一声", emotion: "悲伤" },
       { file: "critical01_buo_tone1_neutral.wav", tone: "一声", emotion: "中性" }
     ];
 
-    // ✅ 正式实验音频（可替换为你完整的 stimuli 列表）
     const stimuli = [
       "critical01_buo_tone1_happiness.wav",
   "critical01_buo_tone1_neutral.wav",
@@ -346,6 +342,7 @@
   "critical19_hing_tone4_happiness.wav",
   "critical19_hing_tone4_neutral.wav",
   "critical19_hing_tone4_sadness.wav",
+      // 👆你可以将此处替换为完整刺激列表
     ];
 
     stimuli.sort(() => Math.random() - 0.5);
@@ -378,9 +375,11 @@
 
     loadPractice(currentPractice);
 
-    // 正式实验逻辑
+    // 正式实验
     let current = 0;
+    let startTime = 0;
     const results = [];
+
     const audio = document.getElementById("audio");
     const trialNum = document.getElementById("trial-num");
     const nextBtn = document.getElementById("next-btn");
@@ -390,6 +389,8 @@
       audio.src = `${audioFolder}/${file}`;
       trialNum.textContent = index + 1;
       nextBtn.disabled = true;
+      startTime = Date.now();
+
       document.querySelectorAll('input[type=radio]').forEach(el => el.checked = false);
     }
 
@@ -414,6 +415,9 @@
     });
 
     nextBtn.addEventListener("click", () => {
+      const endTime = Date.now();
+      const rt = ((endTime - startTime) / 1000).toFixed(3);
+
       const file = stimuli[current];
       const parts = file.replace(".wav", "").split("_");
       const syllable = parts[1];
@@ -421,13 +425,15 @@
       const emotionFromFile = parts[3];
 
       results.push({
+        trial: current + 1,
         file,
         syllable,
         tone_from_filename: tone,
         emotion_from_filename: emotionFromFile,
         tone_user: getSelected("tone"),
         emotion_user: getSelected("emotion"),
-        naturalness: getSelected("naturalness")
+        naturalness: getSelected("naturalness"),
+        rt_seconds: rt
       });
 
       current++;
@@ -441,13 +447,15 @@
 
     function downloadCSV() {
       const headers = [
+        "trial",
         "file",
         "syllable",
         "tone_from_filename",
         "emotion_from_filename",
         "tone_user",
         "emotion_user",
-        "naturalness"
+        "naturalness",
+        "rt_seconds"
       ];
       const csv = [
         headers.join(","),
