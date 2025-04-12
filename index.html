@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>音调情绪实验</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background-color: #f9fafb;
+      color: #111827;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .question {
+      margin-top: 1rem;
+    }
+    .question label {
+      display: block;
+    }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.5rem 1rem;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
+    }
+    audio {
+      margin-top: 1rem;
+    }
+    .hidden {
+      display: none;
+    }
+    .info-box {
+      margin-top: 1rem;
+      background-color: #e0f2fe;
+      padding: 1rem;
+      border-left: 4px solid #0284c7;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>伪词语音 Norming 实验</h1>
+
+  <!-- 练习阶段 -->
+  <div id="practice-container">
+    <p>在正式开始之前，我们将播放 3 个示例音频，让你熟悉音频格式。</p>
+    <p><strong>示例音频 <span id="practice-num">1</span> / 3</strong></p>
+    <audio id="practice-audio" controls></audio>
+
+    <div class="info-box" id="practice-info">
+      <!-- 情绪和声调信息会在这里展示 -->
+    </div>
+
+    <button id="next-practice-btn">播放下一个示例</button>
+  </div>
+
+  <!-- 正式实验 -->
+  <div id="trial-container" class="hidden">
+    <p><strong>第 <span id="trial-num">1</span> 条 / <span id="total-num">?</span></strong></p>
+    <audio id="audio" controls></audio>
+
+    <div class="question">
+      <p>1. 你认为这个词的声调是？</p>
+      <label><input type="radio" name="tone" value="1"> 一声</label>
+      <label><input type="radio" name="tone" value="2"> 二声</label>
+      <label><input type="radio" name="tone" value="3"> 三声</label>
+      <label><input type="radio" name="tone" value="4"> 四声</label>
+    </div>
+
+    <div class="question">
+      <p>2. 你认为这个声音表达的是哪种情绪？</p>
+      <label><input type="radio" name="emotion" value="happiness"> 快乐</label>
+      <label><input type="radio" name="emotion" value="sadness"> 悲伤</label>
+      <label><input type="radio" name="emotion" value="neutral"> 中性</label>
+    </div>
+
+    <div class="question">
+      <p>3. 你觉得这个录音自然吗？（1 = 非常不自然，7 = 非常自然）</p>
+      <label><input type="radio" name="naturalness" value="1"> 1</label>
+      <label><input type="radio" name="naturalness" value="2"> 2</label>
+      <label><input type="radio" name="naturalness" value="3"> 3</label>
+      <label><input type="radio" name="naturalness" value="4"> 4</label>
+      <label><input type="radio" name="naturalness" value="5"> 5</label>
+      <label><input type="radio" name="naturalness" value="6"> 6</label>
+      <label><input type="radio" name="naturalness" value="7"> 7</label>
+    </div>
+
+    <button id="next-btn" disabled>提交并进入下一条</button>
+  </div>
+
+  <!-- 结束页 -->
+  <div id="end-screen" class="hidden">
+    <h2>实验完成，谢谢参与！</h2>
+    <button onclick="downloadCSV()">导出结果</button>
+  </div>
+
+  <script>
+    const audioFolder = "stimuli"; // 或 "stimuli" 如果你放在 stimuli 文件夹中
+
+    // ✅ 练习音频与提示信息
+    const practiceStimuli = [
+      { file: "critical01_buo_tone1_happiness.wav", tone: "一声", emotion: "快乐" },
+      { file: "critical01_buo_tone1_sadness.wav", tone: "一声", emotion: "悲伤" },
+      { file: "critical01_buo_tone1_neutral.wav", tone: "一声", emotion: "中性" }
+    ];
+
+    // ✅ 正式实验音频（可替换为你完整的 stimuli 列表）
+    const stimuli = [
+      "critical01_buo_tone1_happiness.wav",
+  "critical01_buo_tone1_neutral.wav",
+  "critical01_buo_tone1_sadness.wav",
+  "critical01_buo_tone2_happiness.wav",
+  "critical01_buo_tone2_neutral.wav",
+  "critical01_buo_tone2_sadness.wav",
+  "critical01_buo_tone3_happiness.wav",
+  "critical01_buo_tone3_neutral.wav",
+  "critical01_buo_tone3_sadness.wav",
+  "critical01_buo_tone4_happiness.wav",
+  "critical01_buo_tone4_neutral.wav",
+  "critical01_buo_tone4_sadness.wav",
+  "critical02_piong_tone1_happiness.wav",
+  "critical02_piong_tone1_neutral.wav",
+  "critical02_piong_tone1_sadness.wav",
+  "critical02_piong_tone2_happiness.wav",
+  "critical02_piong_tone2_neutral.wav",
+  "critical02_piong_tone2_sadness.wav",
+  "critical02_piong_tone3_happiness.wav",
+  "critical02_piong_tone3_neutral.wav",
+  "critical02_piong_tone3_sadness.wav",
+  "critical02_piong_tone4_happiness.wav",
+  "critical02_piong_tone4_neutral.wav",
+  "critical02_piong_tone4_sadness.wav",
+  "critical03_muan_tone1_happiness.wav",
+  "critical03_muan_tone1_neutral.wav",
+  "critical03_muan_tone1_sadness.wav",
+  "critical03_muan_tone2_happiness.wav",
+  "critical03_muan_tone2_neutral.wav",
+  "critical03_muan_tone2_sadness.wav",
+  "critical03_muan_tone3_happiness.wav",
+  "critical03_muan_tone3_neutral.wav",
+  "critical03_muan_tone3_sadness.wav",
+  "critical03_muan_tone4_happiness.wav",
+  "critical03_muan_tone4_neutral.wav",
+  "critical03_muan_tone4_sadness.wav",
+  "critical04_fia_tone1_happiness.wav",
+  "critical04_fia_tone1_neutral.wav",
+  "critical04_fia_tone1_sadness.wav",
+  "critical04_fia_tone2_happiness.wav",
+  "critical04_fia_tone2_neutral.wav",
+  "critical04_fia_tone2_sadness.wav",
+  "critical04_fia_tone3_happiness.wav",
+  "critical04_fia_tone3_neutral.wav",
+  "critical04_fia_tone3_sadness.wav",
+  "critical04_fia_tone4_happiness.wav",
+  "critical04_fia_tone4_neutral.wav",
+  "critical04_fia_tone4_sadness.wav",
+  "critical05_diong_tone1_happiness.wav",
+  "critical05_diong_tone1_neutral.wav",
+  "critical05_diong_tone1_sadness.wav",
+  "critical05_diong_tone2_happiness.wav",
+  "critical05_diong_tone2_neutral.wav",
+  "critical05_diong_tone2_sadness.wav",
+  "critical05_diong_tone3_happiness.wav",
+  "critical05_diong_tone3_neutral.wav",
+  "critical05_diong_tone3_sadness.wav",
+  "critical05_diong_tone4_happiness.wav",
+  "critical05_diong_tone4_neutral.wav",
+  "critical05_diong_tone4_sadness.wav",
+  "critical06_tiong_tone1_happiness.wav",
+  "critical06_tiong_tone1_neutral.wav",
+  "critical06_tiong_tone1_sadness.wav",
+  "critical06_tiong_tone2_happiness.wav",
+  "critical06_tiong_tone2_neutral.wav",
+  "critical06_tiong_tone2_sadness.wav",
+  "critical06_tiong_tone3_happiness.wav",
+  "critical06_tiong_tone3_neutral.wav",
+  "critical06_tiong_tone3_sadness.wav",
+  "critical06_tiong_tone4_happiness.wav",
+  "critical06_tiong_tone4_neutral.wav",
+  "critical06_tiong_tone4_sadness.wav",
+  "critical07_zo_tone1_happiness.wav",
+  "critical07_zo_tone1_neutral.wav",
+  "critical07_zo_tone1_sadness.wav",
+  "critical07_zo_tone2_happiness.wav",
+  "critical07_zo_tone2_neutral.wav",
+  "critical07_zo_tone2_sadness.wav",
+  "critical07_zo_tone3_happiness.wav",
+  "critical07_zo_tone3_neutral.wav",
+  "critical07_zo_tone3_sadness.wav",
+  "critical07_zo_tone4_happiness.wav",
+  "critical07_zo_tone4_neutral.wav",
+  "critical07_zo_tone4_sadness.wav",
+  "critical08_ciang_tone1_happiness.wav",
+  "critical08_ciang_tone1_neutral.wav",
+  "critical08_ciang_tone1_sadness.wav",
+  "critical08_ciang_tone2_happiness.wav",
+  "critical08_ciang_tone2_neutral.wav",
+  "critical08_ciang_tone2_sadness.wav",
+  "critical08_ciang_tone3_happiness.wav",
+  "critical08_ciang_tone3_neutral.wav",
+  "critical08_ciang_tone3_sadness.wav",
+  "critical08_ciang_tone4_happiness.wav",
+  "critical08_ciang_tone4_neutral.wav",
+  "critical08_ciang_tone4_sadness.wav",
+  "critical09_siou_tone1_happiness.wav",
+  "critical09_siou_tone1_neutral.wav",
+  "critical09_siou_tone1_sadness.wav",
+  "critical09_siou_tone2_happiness.wav",
+  "critical09_siou_tone2_neutral.wav",
+  "critical09_siou_tone2_sadness.wav",
+  "critical09_siou_tone3_happiness.wav",
+  "critical09_siou_tone3_neutral.wav",
+  "critical09_siou_tone3_sadness.wav",
+  "critical09_siou_tone4_happiness.wav",
+  "critical09_siou_tone4_neutral.wav",
+  "critical09_siou_tone4_sadness.wav",
+  "critical10_zhin_tone1_happiness.wav",
+  "critical10_zhin_tone1_neutral.wav",
+  "critical10_zhin_tone1_sadness.wav",
+  "critical10_zhin_tone2_happiness.wav",
+  "critical10_zhin_tone2_neutral.wav",
+  "critical10_zhin_tone2_sadness.wav",
+  "critical10_zhin_tone3_happiness.wav",
+  "critical10_zhin_tone3_neutral.wav",
+  "critical10_zhin_tone3_sadness.wav",
+  "critical10_zhin_tone4_happiness.wav",
+  "critical10_zhin_tone4_neutral.wav",
+  "critical10_zhin_tone4_sadness.wav",
+  "critical11_chin_tone1_happiness.wav",
+  "critical11_chin_tone1_neutral.wav",
+  "critical11_chin_tone1_sadness.wav",
+  "critical11_chin_tone2_happiness.wav",
+  "critical11_chin_tone2_neutral.wav",
+  "critical11_chin_tone2_sadness.wav",
+  "critical11_chin_tone3_happiness.wav",
+  "critical11_chin_tone3_neutral.wav",
+  "critical11_chin_tone3_sadness.wav",
+  "critical11_chin_tone4_happiness.wav",
+  "critical11_chin_tone4_neutral.wav",
+  "critical11_chin_tone4_sadness.wav",
+  "critical12_shin_tone1_happiness.wav",
+  "critical12_shin_tone1_neutral.wav",
+  "critical12_shin_tone1_sadness.wav",
+  "critical12_shin_tone2_happiness.wav",
+  "critical12_shin_tone2_neutral.wav",
+  "critical12_shin_tone2_sadness.wav",
+  "critical12_shin_tone3_happiness.wav",
+  "critical12_shin_tone3_neutral.wav",
+  "critical12_shin_tone3_sadness.wav",
+  "critical12_shin_tone4_happiness.wav",
+  "critical12_shin_tone4_neutral.wav",
+  "critical12_shin_tone4_sadness.wav",
+  "critical13_rian_tone1_happiness.wav",
+  "critical13_rian_tone1_neutral.wav",
+  "critical13_rian_tone1_sadness.wav",
+  "critical13_rian_tone2_happiness.wav",
+  "critical13_rian_tone2_neutral.wav",
+  "critical13_rian_tone2_sadness.wav",
+  "critical13_rian_tone3_happiness.wav",
+  "critical13_rian_tone3_neutral.wav",
+  "critical13_rian_tone3_sadness.wav",
+  "critical13_rian_tone4_happiness.wav",
+  "critical13_rian_tone4_neutral.wav",
+  "critical13_rian_tone4_sadness.wav",
+  "critical14_jan_tone1_happiness.wav",
+  "critical14_jan_tone1_neutral.wav",
+  "critical14_jan_tone1_sadness.wav",
+  "critical14_jan_tone2_happiness.wav",
+  "critical14_jan_tone2_neutral.wav",
+  "critical14_jan_tone2_sadness.wav",
+  "critical14_jan_tone3_happiness.wav",
+  "critical14_jan_tone3_neutral.wav",
+  "critical14_jan_tone3_sadness.wav",
+  "critical14_jan_tone4_happiness.wav",
+  "critical14_jan_tone4_neutral.wav",
+  "critical14_jan_tone4_sadness.wav",
+  "critical15_qou_tone1_happiness.wav",
+  "critical15_qou_tone1_neutral.wav",
+  "critical15_qou_tone1_sadness.wav",
+  "critical15_qou_tone2_happiness.wav",
+  "critical15_qou_tone2_neutral.wav",
+  "critical15_qou_tone2_sadness.wav",
+  "critical15_qou_tone3_happiness.wav",
+  "critical15_qou_tone3_neutral.wav",
+  "critical15_qou_tone3_sadness.wav",
+  "critical15_qou_tone4_happiness.wav",
+  "critical15_qou_tone4_neutral.wav",
+  "critical15_qou_tone4_sadness.wav",
+  "critical16_xai_tone1_happiness.wav",
+  "critical16_xai_tone1_neutral.wav",
+  "critical16_xai_tone1_sadness.wav",
+  "critical16_xai_tone2_happiness.wav",
+  "critical16_xai_tone2_neutral.wav",
+  "critical16_xai_tone2_sadness.wav",
+  "critical16_xai_tone3_happiness.wav",
+  "critical16_xai_tone3_neutral.wav",
+  "critical16_xai_tone3_sadness.wav",
+  "critical16_xai_tone4_happiness.wav",
+  "critical16_xai_tone4_neutral.wav",
+  "critical16_xai_tone4_sadness.wav",
+  "critical17_gia_tone1_happiness.wav",
+  "critical17_gia_tone1_neutral.wav",
+  "critical17_gia_tone1_sadness.wav",
+  "critical17_gia_tone2_happiness.wav",
+  "critical17_gia_tone2_neutral.wav",
+  "critical17_gia_tone2_sadness.wav",
+  "critical17_gia_tone3_happiness.wav",
+  "critical17_gia_tone3_neutral.wav",
+  "critical17_gia_tone3_sadness.wav",
+  "critical17_gia_tone4_happiness.wav",
+  "critical17_gia_tone4_neutral.wav",
+  "critical17_gia_tone4_sadness.wav",
+  "critical18_kian_tone1_happiness.wav",
+  "critical18_kian_tone1_neutral.wav",
+  "critical18_kian_tone1_sadness.wav",
+  "critical18_kian_tone2_happiness.wav",
+  "critical18_kian_tone2_neutral.wav",
+  "critical18_kian_tone2_sadness.wav",
+  "critical18_kian_tone3_happiness.wav",
+  "critical18_kian_tone3_neutral.wav",
+  "critical18_kian_tone3_sadness.wav",
+  "critical18_kian_tone4_happiness.wav",
+  "critical18_kian_tone4_neutral.wav",
+  "critical18_kian_tone4_sadness.wav",
+  "critical19_hing_tone1_happiness.wav",
+  "critical19_hing_tone1_neutral.wav",
+  "critical19_hing_tone1_sadness.wav",
+  "critical19_hing_tone2_happiness.wav",
+  "critical19_hing_tone2_neutral.wav",
+  "critical19_hing_tone2_sadness.wav",
+  "critical19_hing_tone3_happiness.wav",
+  "critical19_hing_tone3_neutral.wav",
+  "critical19_hing_tone3_sadness.wav",
+  "critical19_hing_tone4_happiness.wav",
+  "critical19_hing_tone4_neutral.wav",
+  "critical19_hing_tone4_sadness.wav",
+    ];
+
+    stimuli.sort(() => Math.random() - 0.5);
+    document.getElementById("total-num").textContent = stimuli.length;
+
+    // 练习阶段逻辑
+    let currentPractice = 0;
+    const practiceAudio = document.getElementById("practice-audio");
+    const nextPracticeBtn = document.getElementById("next-practice-btn");
+    const practiceNum = document.getElementById("practice-num");
+    const practiceInfo = document.getElementById("practice-info");
+
+    function loadPractice(index) {
+      const item = practiceStimuli[index];
+      practiceAudio.src = `${audioFolder}/${item.file}`;
+      practiceNum.textContent = index + 1;
+      practiceInfo.innerHTML = `<strong>提示：</strong>这是一条 <strong>${item.emotion}</strong> 的录音，声调是 <strong>${item.tone}</strong>。`;
+    }
+
+    nextPracticeBtn.addEventListener("click", () => {
+      currentPractice++;
+      if (currentPractice < practiceStimuli.length) {
+        loadPractice(currentPractice);
+      } else {
+        document.getElementById("practice-container").classList.add("hidden");
+        document.getElementById("trial-container").classList.remove("hidden");
+        loadTrial(current);
+      }
+    });
+
+    loadPractice(currentPractice);
+
+    // 正式实验逻辑
+    let current = 0;
+    const results = [];
+    const audio = document.getElementById("audio");
+    const trialNum = document.getElementById("trial-num");
+    const nextBtn = document.getElementById("next-btn");
+
+    function loadTrial(index) {
+      const file = stimuli[index];
+      audio.src = `${audioFolder}/${file}`;
+      trialNum.textContent = index + 1;
+      nextBtn.disabled = true;
+      document.querySelectorAll('input[type=radio]').forEach(el => el.checked = false);
+    }
+
+    function getSelected(name) {
+      const radios = document.querySelectorAll(`input[name=${name}]`);
+      for (const r of radios) {
+        if (r.checked) return r.value;
+      }
+      return null;
+    }
+
+    document.querySelectorAll('input[type=radio]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (
+          getSelected("tone") &&
+          getSelected("emotion") &&
+          getSelected("naturalness")
+        ) {
+          nextBtn.disabled = false;
+        }
+      });
+    });
+
+    nextBtn.addEventListener("click", () => {
+      const file = stimuli[current];
+      const parts = file.replace(".wav", "").split("_");
+      const syllable = parts[1];
+      const tone = parts[2].replace("tone", "");
+      const emotionFromFile = parts[3];
+
+      results.push({
+        file,
+        syllable,
+        tone_from_filename: tone,
+        emotion_from_filename: emotionFromFile,
+        tone_user: getSelected("tone"),
+        emotion_user: getSelected("emotion"),
+        naturalness: getSelected("naturalness")
+      });
+
+      current++;
+      if (current < stimuli.length) {
+        loadTrial(current);
+      } else {
+        document.getElementById("trial-container").classList.add("hidden");
+        document.getElementById("end-screen").classList.remove("hidden");
+      }
+    });
+
+    function downloadCSV() {
+      const headers = [
+        "file",
+        "syllable",
+        "tone_from_filename",
+        "emotion_from_filename",
+        "tone_user",
+        "emotion_user",
+        "naturalness"
+      ];
+      const csv = [
+        headers.join(","),
+        ...results.map(r => headers.map(h => r[h]).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "responses.csv";
+      a.click();
+    }
+  </script>
+</body>
+</html>
